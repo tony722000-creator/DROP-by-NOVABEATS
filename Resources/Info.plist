@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleName</key><string>DROP</string>
+    <key>CFBundleDisplayName</key><string>DROP</string>
+    <key>CFBundleIdentifier</key><string>com.tonycarlos.drop</string>
+    <key>CFBundleExecutable</key><string>DROP</string>
+    <key>CFBundleIconFile</key><string>AppIcon</string>
+    <key>CFBundlePackageType</key><string>APPL</string>
+    <key>CFBundleShortVersionString</key><string>1.1.1</string>
+    <key>CFBundleVersion</key><string>3</string>
+    <key>CFBundleDevelopmentRegion</key><string>fr</string>
+    <key>LSMinimumSystemVersion</key><string>14.0</string>
+    <key>NSHighResolutionCapable</key><true/>
+    <key>NSPrincipalClass</key><string>NSApplication</string>
+    <key>LSApplicationCategoryType</key><string>public.app-category.music</string>
+    <key>NSDownloadsFolderUsageDescription</key><string>DROP cherche tes sons dans Téléchargements.</string>
+    <key>NSDocumentsFolderUsageDescription</key><string>DROP lit ta bibliothèque de samples et tes projets.</string>
+    <key>NSDesktopFolderUsageDescription</key><string>DROP lit ta bibliothèque de samples et tes projets.</string>
+    <key>NSRemovableVolumesUsageDescription</key><string>DROP cherche tes sons sur tes disques externes.</string>
+    <key>CFBundleDocumentTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleTypeName</key><string>Projet FL Studio</string>
+            <key>CFBundleTypeRole</key><string>Viewer</string>
+            <key>LSItemContentTypes</key><array><string>public.data</string></array>
+            <key>CFBundleTypeExtensions</key><array><string>flp</string></array>
+        </dict>
+    </array>
+</dict>
+</plist>
