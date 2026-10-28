@@ -32,8 +32,8 @@ struct SummarySheet: View {
                     Button("FERMER") { dismiss() }
                         .keyboardShortcut(.cancelAction)
                     Button {
-                        if let first = model.reports.first {
-                            NSWorkspace.shared.open(model.reports.count > 1 ? (model.outputURL ?? first.destination) : first.destination)
+                        if let dest = model.reports.first?.destination ?? model.outputURL {
+                            NSWorkspace.shared.open(dest)
                         }
                     } label: {
                         Label("OUVRIR LE DOSSIER DANS LE FINDER", systemImage: "folder")
@@ -72,6 +72,11 @@ private struct ReportBlock: View {
                 Label("\(report.notFound.count) introuvable\(report.notFound.count > 1 ? "s" : "") : " +
                       report.notFound.map(\.fileName).joined(separator: ", "), systemImage: "questionmark.circle")
                     .font(.caption).foregroundStyle(Studio.lavender)
+            }
+            if !report.metadataKept.isEmpty {
+                Label("Infos intégrées non retirées (format non pris en charge) : " + report.metadataKept.joined(separator: ", "),
+                      systemImage: "info.circle")
+                    .font(.caption).foregroundStyle(.white.opacity(0.7))
             }
             ForEach(Array(report.failed.enumerated()), id: \.offset) { _, f in
                 Label("Échec : \(f.item.fileName) (\(f.reason))", systemImage: "exclamationmark.triangle")

@@ -1,4 +1,4 @@
-# DROP by NOVA BEAT
+# DROP by NOVABEATS
 
 <p align="center"><img src="Branding/drop-icon-1024.png" width="160" alt="Icône DROP"></p>
 
@@ -8,9 +8,17 @@ les classe par type (808, kick, snare, clap, hihat…) et les **copie** dans un 
 Idéal pour préparer un drum kit ou envoyer les sons d'une prod.
 
 ```
-<dossier de sortie>/<artiste> - <titre>/<type>/<type>-<artiste>-<titre>.<ext>
-Sorties/wazanolimit - monalisa/808/808-wazanolimit-monalisa.wav
+<dossier de sortie>/<type>/<type>-<artiste>-<titre>.<ext>
+Sorties/808/808-wazanolimit-monalisa.wav
+Sorties/clap/clap-wazanolimit-monalisa.wav
 ```
+
+Chaque type a **un seul dossier** qui se remplit au fil de tes prods : tous tes claps finissent dans `clap/`,
+chacun avec le nom de l'artiste et du morceau. Rien n'est jamais écrasé.
+
+Les copies sont **nettoyées** : toutes les infos attachées au fichier (titre, artiste, commentaires, image,
+icône personnalisée, étiquettes, lien de téléchargement…) sont retirées, le son reste identique.
+Formats nettoyés : WAV, MP3, AIFF, FLAC (les OGG sont copiés tels quels).
 
 - 100 % local : aucune connexion internet nécessaire.
 - Les fichiers originaux ne sont jamais déplacés ni modifiés.
@@ -63,4 +71,4 @@ La détection des types se règle dans `Sources/DKWCore/Classification/Classific
 
 ---
 
-DROP by NOVA BEAT · logiciel pour beatmakers FL Studio sur Mac · extraction de samples · drum kit
+DROP by NOVABEATS · logiciel pour beatmakers FL Studio sur Mac · extraction de samples · drum kit

@@ -49,7 +49,7 @@ private struct PedalLayout: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack(alignment: .top) {
-                LogoView(width: 200, neon: true)
+                LogoView(width: 200, glow: true)
                 Spacer()
                 SettingsLink { Image(systemName: "gearshape.fill") }
                     .buttonStyle(CreamIconButtonStyle())
@@ -179,7 +179,7 @@ private struct BlackHoleStage: View {
         let missing = model.totalMissing
         var s = "\(total) SON\(total > 1 ? "S" : "")"
         if model.projects.count > 1 { s = "\(model.projects.count) PROJETS · " + s }
-        if missing > 0 { s += " · \(missing) INTROUVABLE\(missing > 1 ? "S" : "")" }
+        if missing > 0 { s += " · \(missing) NON TROUVÉ\(missing > 1 ? "S" : "")" }
         return s
     }
 }
@@ -270,7 +270,7 @@ struct SetupView: View {
 
     var body: some View {
         VStack(spacing: 22) {
-            LogoView(width: 340, neon: true)
+            LogoView(width: 340)
             Text("OÙ SE TROUVE TA BIBLIOTHÈQUE DE DRUMS ?").silkscreen(size: 13)
             Text("DROP s'en souviendra (modifiable dans les réglages).")
                 .font(.system(size: 13)).foregroundStyle(.white.opacity(0.7))

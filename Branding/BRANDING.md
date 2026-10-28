@@ -1,4 +1,4 @@
-# DROP by NOVA BEAT — identité visuelle
+# DROP by NOVABEATS — identité visuelle
 
 Fichiers à intégrer dans l'app macOS DROP (Swift Package Manager, sans Xcode).
 
@@ -8,8 +8,8 @@ Fichiers à intégrer dans l'app macOS DROP (Swift Package Manager, sans Xcode).
 |---|---|---|
 | `AppIcon.icns` | 16 → 1024 px | Icône de l'app (Dock, Finder). À copier dans `DROP.app/Contents/Resources/` par `build.sh`, avec `CFBundleIconFile = AppIcon` dans `Info.plist`. Déjà au format macOS (carré arrondi + ombre) : ne pas re-masquer. |
 | `drop-icon-1024.png` | 1024×1024 | Même icône en PNG (README GitHub, page de Release). |
-| `drop-logo.png` | 1626×553, fond transparent | Logo complet « DROP by NOVA BEAT ». Écran d'accueil / zone de glisser-déposer vide, fenêtre « À propos ». |
-| `drop-logo@1x.png` | 813×277, fond transparent | Version plus légère du logo. |
+| `drop-logo.png` | 1613×622, fond transparent | Logo complet « DROP by NOVABEATS ». Écran d'accueil / zone de glisser-déposer vide, fenêtre « À propos ». |
+| `drop-logo@1x.png` | 806×311, fond transparent | Version plus légère du logo. |
 
 Dans le package Swift : placer les PNG dans `Sources/<cible de l'app>/Resources/`, déclarer `resources: [.process("Resources")]` dans `Package.swift`, et les charger avec `Bundle.module` (ex. `NSImage(contentsOf: Bundle.module.url(forResource: "drop-logo", withExtension: "png")!)`). Pas d'Asset Catalog.
 

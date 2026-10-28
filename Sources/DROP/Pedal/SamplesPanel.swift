@@ -133,8 +133,8 @@ private struct SampleRow: View {
                         }
                     }
             } else {
-                PedalBadge(label: "?", color: Studio.color(0x4B4558))
-                    .help("Son introuvable")
+                PedalBadge(label: "NON TROUVÉ", color: Studio.color(0x4B4558))
+                    .help("Ce fichier n'est pas sur ce Mac (ou son dossier est verrouillé). Bouton CHERCHER… pour le retrouver.")
             }
         }
         .padding(.horizontal, 14)

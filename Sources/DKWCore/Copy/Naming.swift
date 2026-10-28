@@ -14,10 +14,6 @@ public enum Naming {
         return s
     }
 
-    public static func projectFolderName(artist: String, title: String) -> String {
-        "\(artist) - \(title)"
-    }
-
     public static func fileName(type: SoundType, artist: String, title: String, number: Int, ext: String) -> String {
         let suffix = number > 1 ? "-\(number)" : ""
         return "\(type.folderName)-\(artist)-\(title)\(suffix).\(ext)"

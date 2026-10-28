@@ -149,12 +149,95 @@ enum SelfTest {
         let job = ExtractionJob(flpName: "monalisa", artist: "wazanolimit", title: "mona lisa", outputRoot: out, items: project.items)
         guard let report = try? Extractor.run(job) else { check(false, "extraction"); return false }
         check(report.copied.count == 4, "4 sons copiés (dédoublonnés)")
-        check(fm.fileExists(atPath: out.appendingPathComponent("wazanolimit - mona_lisa/kick/kick-wazanolimit-mona_lisa.wav").path), "chemin de sortie conforme")
-        check(fm.fileExists(atPath: out.appendingPathComponent("wazanolimit - mona_lisa/808/808-wazanolimit-mona_lisa.wav").path), "dossier 808")
+        check(fm.fileExists(atPath: out.appendingPathComponent("kick/kick-wazanolimit-mona_lisa.wav").path), "chemin de sortie conforme")
+        check(fm.fileExists(atPath: out.appendingPathComponent("808/808-wazanolimit-mona_lisa.wav").path), "dossier 808")
         check(fm.fileExists(atPath: lib.appendingPathComponent("Kick 01.wav").path), "originaux intacts")
         let again = try? Extractor.run(job)
-        check(again?.copied.count == 4 && (try? fm.contentsOfDirectory(atPath: out.appendingPathComponent("wazanolimit - mona_lisa/kick").path))?.count == 1,
+        check(again?.copied.count == 4 && (try? fm.contentsOfDirectory(atPath: out.appendingPathComponent("kick").path))?.count == 1,
               "relancer ne crée pas de doublons")
+
+        // une 2e prod va dans les MÊMES dossiers de type, sans écraser la 1re
+        let job2 = ExtractionJob(flpName: "autre", artist: "wazanolimit", title: "autre son", outputRoot: out, items: project.items)
+        _ = try? Extractor.run(job2)
+        let kicks = (try? fm.contentsOfDirectory(atPath: out.appendingPathComponent("kick").path)) ?? []
+        check(kicks.sorted() == ["kick-wazanolimit-autre_son.wav", "kick-wazanolimit-mona_lisa.wav"], "2 prods → même dossier kick, noms distincts")
+        let top = ((try? fm.contentsOfDirectory(atPath: out.path)) ?? []).filter { !$0.hasPrefix(".") }.sorted()
+        check(top == ["808", "hihat", "kick", "snare"], "pas de dossier « artiste - titre »")
+
+        print("Nettoyage des infos attachées")
+        let jpeg: [UInt8] = [0xFF, 0xD8, 0xFF, 0xE0] + Array(repeating: 0x11, count: 40) + [0xFF, 0xD9]
+        func frame(_ id: String, _ body: [UInt8]) -> [UInt8] { Array(id.utf8) + [UInt8(body.count >> 24 & 0xFF), UInt8(body.count >> 16 & 0xFF), UInt8(body.count >> 8 & 0xFF), UInt8(body.count & 0xFF), 0, 0] + body }
+        let frames = frame("TIT2", [0] + Array("Kit de quelqu'un".utf8)) + frame("APIC", [0] + Array("image/jpeg".utf8) + [0, 3, 0] + jpeg)
+        let tag: [UInt8] = Array("ID3".utf8) + [3, 0, 0] + [0, 0, UInt8(frames.count >> 7 & 0x7F), UInt8(frames.count & 0x7F)] + frames
+        let audio: [UInt8] = (0..<999).map { UInt8($0 % 251) }
+        let mark = Array("Kit de quelqu'un".utf8)
+        func has(_ hay: Data?, _ needle: [UInt8]) -> Bool { hay?.range(of: Data(needle)) != nil }
+        func le32(_ v: Int) -> [UInt8] { [UInt8(v & 0xFF), UInt8(v >> 8 & 0xFF), UInt8(v >> 16 & 0xFF), UInt8(v >> 24 & 0xFF)] }
+        func be32(_ v: Int) -> [UInt8] { le32(v).reversed() }
+
+        // MP3 : ID3v2 + son + APE + ID3v1
+        let mpegAudio: [UInt8] = [0xFF, 0xFB, 0x90, 0x00] + audio
+        let apeItems: [UInt8] = Array(repeating: 0x41, count: 20)
+        let apeFooter: [UInt8] = Array("APETAGEX".utf8) + le32(2000) + le32(apeItems.count + 32) + le32(1) + le32(0) + Array(repeating: 0, count: 8)
+        let id3v1: [UInt8] = Array("TAG".utf8) + mark + Array(repeating: 0, count: 125 - mark.count)
+        let mp3 = Data(tag + mpegAudio + apeItems + apeFooter + id3v1)
+        check(MetadataStripper.strip(mp3, fileExtension: "mp3") == Data(mpegAudio), "MP3 : ID3v2, APE et ID3v1 retirés, son intact")
+
+        // WAV : fmt + LIST INFO + id3 + bext + smpl + data
+        let fmt: [UInt8] = Array("fmt ".utf8) + le32(16) + [1, 0, 1, 0] + le32(44100) + le32(88200) + [2, 0, 16, 0]
+        let dataChunk: [UInt8] = Array("data".utf8) + le32(audio.count) + audio + [0]
+        let info: [UInt8] = Array("INFO".utf8) + Array("IART".utf8) + le32(mark.count) + mark
+        let listChunk: [UInt8] = Array("LIST".utf8) + le32(info.count) + info
+        let id3Chunk: [UInt8] = Array("id3 ".utf8) + le32(tag.count) + tag + (tag.count % 2 == 1 ? [0] : [])
+        let bext: [UInt8] = Array("bext".utf8) + le32(mark.count) + mark
+        let smpl: [UInt8] = Array("smpl".utf8) + le32(8) + Array(repeating: 7, count: 8)
+        let wavBody = Array("WAVE".utf8) + fmt + listChunk + id3Chunk + bext + smpl + dataChunk
+        let wav = Data(Array("RIFF".utf8) + le32(wavBody.count) + wavBody)
+        let cleanWav = MetadataStripper.strip(wav, fileExtension: "wav")
+        let expectedBody = Array("WAVE".utf8) + fmt + smpl + dataChunk
+        check(cleanWav == Data(Array("RIFF".utf8) + le32(expectedBody.count) + expectedBody), "WAV : infos et image retirées ; format, boucles et son gardés")
+        check(MetadataStripper.strip(Data("pas un wav".utf8), fileExtension: "wav") == nil, "fichier abîmé : laissé tel quel")
+
+        // AIFF : COMM + NAME + ID3 + SSND
+        let comm: [UInt8] = Array("COMM".utf8) + be32(18) + Array(repeating: 1, count: 18)
+        let ssnd: [UInt8] = Array("SSND".utf8) + be32(audio.count + 8) + Array(repeating: 0, count: 8) + audio + [0]
+        let name: [UInt8] = Array("NAME".utf8) + be32(mark.count) + mark
+        let aiffBody = Array("AIFF".utf8) + comm + name + Array("ID3 ".utf8) + be32(tag.count) + tag + (tag.count % 2 == 1 ? [0] : []) + ssnd
+        let cleanAiff = MetadataStripper.strip(Data(Array("FORM".utf8) + be32(aiffBody.count) + aiffBody), fileExtension: "aiff")
+        let expectedAiff = Array("AIFF".utf8) + comm + ssnd
+        check(cleanAiff == Data(Array("FORM".utf8) + be32(expectedAiff.count) + expectedAiff), "AIFF : nom et balise retirés, son gardé")
+
+        // FLAC : STREAMINFO + VORBIS_COMMENT + PICTURE (dernier) + trames
+        let streamInfo: [UInt8] = [0x00, 0, 0, 34] + Array(repeating: 5, count: 34)
+        let comment: [UInt8] = [0x04, 0, 0, UInt8(mark.count)] + mark
+        let picture: [UInt8] = [0x86, 0, 0, UInt8(jpeg.count)] + jpeg
+        let flacFrames: [UInt8] = [0xFF, 0xF8] + audio
+        let cleanFlac = MetadataStripper.strip(Data(Array("fLaC".utf8) + streamInfo + comment + picture + flacFrames), fileExtension: "flac")
+        check(cleanFlac == Data(Array("fLaC".utf8) + [0x80] + streamInfo.dropFirst() + flacFrames), "FLAC : commentaires et image retirés, son gardé")
+
+        // Extraction : infos macOS attachées non recopiées, original intact, pas de doublon
+        let srcDir = tmp.appendingPathComponent("KitSrc"), cleanOut = tmp.appendingPathComponent("CleanOut")
+        try? fm.createDirectory(at: srcDir, withIntermediateDirectories: true)
+        let srcWav = srcDir.appendingPathComponent("Clap 1.wav")
+        try? wav.write(to: srcWav)
+        _ = srcWav.withUnsafeFileSystemRepresentation { path in
+            Array("Kit de quelqu'un".utf8).withUnsafeBytes { setxattr(path!, "com.apple.metadata:kMDItemWhereFroms", $0.baseAddress, $0.count, 0, 0) }
+        }
+        let cleanItem = SampleItem(originalPath: srcWav.path, fileName: "Clap 1.wav", channelName: nil, resolved: srcWav,
+                                   source: .exact, type: .clap, detectedBy: .fileName, included: true)
+        let cleanJob = ExtractionJob(flpName: "x", artist: "nova", title: "piste", outputRoot: cleanOut, items: [cleanItem])
+        _ = try? Extractor.run(cleanJob)
+        _ = try? Extractor.run(cleanJob)
+        let dest = cleanOut.appendingPathComponent("clap/clap-nova-piste.wav")
+        // noms des attributs étendus ; « com.apple.provenance » est posé par macOS sur tout fichier créé (aucune info du kit)
+        var xbuf = [CChar](repeating: 0, count: 4096)
+        let xlen = listxattr(dest.path, &xbuf, xbuf.count, 0)
+        let destXattrs = (xlen > 0 ? xbuf[0..<xlen].split(separator: 0).map { String(cString: Array($0) + [0]) } : [])
+            .filter { $0 != "com.apple.provenance" }
+        check((try? fm.contentsOfDirectory(atPath: cleanOut.appendingPathComponent("clap").path)) == ["clap-nova-piste.wav"], "relancer ne crée pas de doublon")
+        check(!has(try? Data(contentsOf: dest), mark), "la copie n'a plus aucune info du kit")
+        check(destXattrs.isEmpty, "la copie n'a plus d'infos macOS attachées (icône, étiquettes, lien de téléchargement…)")
+        check((try? Data(contentsOf: srcWav)) == wav, "l'original n'est pas modifié")
 
         print(failures == 0 ? "\nTous les tests passent ✅" : "\n\(failures) test(s) en échec ❌")
         return failures == 0

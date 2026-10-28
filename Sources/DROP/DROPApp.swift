@@ -12,7 +12,10 @@ struct DROPApp: App {
                 .environment(model)
                 .frame(minWidth: 1000, minHeight: 600)
                 .onOpenURL { model.add(urls: [$0]) }
-                .onAppear { DemoMode.scheduleSnapshot() }
+                .onAppear {
+                    if DemoMode.isOn, DemoMode.env["DROP_SHOW"] == "about" { openWindow(id: "about") }
+                    DemoMode.scheduleSnapshot()
+                }
         }
         .windowStyle(.hiddenTitleBar)
         .defaultSize(width: 1100, height: 640)

@@ -57,7 +57,7 @@ enum Studio {
     }
 }
 
-/// Logo « DROP by NOVA BEAT » (copié dans DROP.app/Contents/Resources par build.sh).
+/// Logo « DROP by NOVABEATS » (copié dans DROP.app/Contents/Resources par build.sh).
 enum Brand {
     static let logo: NSImage? = {
         if let url = Bundle.main.url(forResource: "drop-logo", withExtension: "png") { return NSImage(contentsOf: url) }
@@ -69,6 +69,8 @@ struct LogoView: View {
     var width: CGFloat = 360
     /// Version « néon » de la maquette : logo rempli de lavande claire avec une lueur violette.
     var neon = false
+    /// Lueur violette autour du logo (en-tête de la page principale).
+    var glow = false
 
     var body: some View {
         Group {
@@ -81,13 +83,16 @@ struct LogoView: View {
                         .shadow(color: Studio.glow.opacity(0.6), radius: 16)
                 } else {
                     Image(nsImage: img).resizable().scaledToFit().frame(width: width)
+                        .shadow(color: Studio.space.opacity(glow ? 0.35 : 0.55), radius: 10) // ressort mieux sur la texture violette
+                        .shadow(color: glow ? Studio.accent.opacity(0.75) : .clear, radius: 7)
+                        .shadow(color: glow ? Studio.glow.opacity(0.45) : .clear, radius: 18)
                 }
             } else {
                 Text("DROP").font(.system(size: width / 5, weight: .black, design: .rounded))
                     .foregroundStyle(Studio.gradient)
             }
         }
-        .accessibilityLabel("DROP by NOVA BEAT")
+        .accessibilityLabel("DROP by NOVABEATS")
     }
 }
 
