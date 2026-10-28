@@ -5,7 +5,7 @@ let usage = """
 dkw-flp — liste les samples audio d'un projet FL Studio (.flp)
 
 Usage :
-  dkw-flp <projet.flp> [--library <dossier>] [--fallback <dossier>]...
+  dkw-flp <projet.flp> [--library <dossier>] [--fallback <dossier>]... [--no-downloads]
   dkw-flp --self-test
 
 Avec --library, chaque sample est aussi recherché (chemin exact, bibliothèque, ~/Downloads, secours).
@@ -20,11 +20,13 @@ if args.contains("--self-test") { exit(SelfTest.run() ? 0 : 1) }
 var flpPath: String?
 var libraryPath: String?
 var fallbackPaths: [String] = []
+var useDownloads = true
 while !args.isEmpty {
     let a = args.removeFirst()
     switch a {
     case "--library": libraryPath = args.isEmpty ? nil : args.removeFirst()
     case "--fallback": if !args.isEmpty { fallbackPaths.append(args.removeFirst()) }
+    case "--no-downloads": useDownloads = false
     default: flpPath = a
     }
 }
@@ -32,9 +34,17 @@ guard let flpPath else { print(usage); exit(1) }
 
 var resolver = SampleResolver()
 if let libraryPath {
-    resolver.library = IndexCache.refresh(root: URL(fileURLWithPath: libraryPath)).index
-    let dl = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Downloads")
-    resolver.downloads = Indexer.scan(root: dl, maxDepth: 4)
+    let lib = IndexCache.refresh(root: URL(fileURLWithPath: libraryPath)).index
+    resolver.library = lib
+    print("Bibliothèque : \(lib.fileCount) sons indexés")
+    if let bad = lib.unreadable, !bad.isEmpty {
+        print("⚠️  \(bad.count) dossier(s) illisible(s) (droits d'accès) :")
+        bad.forEach { print("    \($0)") }
+    }
+    if useDownloads {
+        let dl = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Downloads")
+        resolver.downloads = Indexer.scan(root: dl, maxDepth: 4, skipPackages: true)
+    }
     resolver.fallbacks = fallbackPaths.map { Indexer.scan(root: URL(fileURLWithPath: $0)) }
 }
 

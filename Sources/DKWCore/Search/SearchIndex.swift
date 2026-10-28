@@ -6,6 +6,8 @@ public struct SearchIndex: Sendable, Codable {
     public let signature: String
     public let fileCount: Int
     public let byName: [String: [String]]
+    /// Dossiers que macOS refuse d'ouvrir (droits d'accès), au plus 50.
+    public let unreadable: [String]?
 
     public func paths(named fileName: String) -> [String] {
         byName[fileName.lowercased()] ?? []
@@ -14,14 +16,21 @@ public struct SearchIndex: Sendable, Codable {
 
 public enum Indexer {
     /// Parcourt `root` et construit l'index. `maxDepth` limite la profondeur (nil = illimité).
+    /// `skipPackages` : ne pas entrer dans les paquets (.app…). Faux par défaut, car les sons de
+    /// FL Studio sont rangés à l'intérieur de « FL Studio.app ».
     /// Fonction synchrone : à appeler hors du thread principal.
-    public static func scan(root: URL, maxDepth: Int? = nil) -> SearchIndex {
+    public static func scan(root: URL, maxDepth: Int? = nil, skipPackages: Bool = false) -> SearchIndex {
         var byName: [String: [String]] = [:]
         var count = 0, dirCount = 0
         var maxMTime: TimeInterval = 0
+        var unreadable: [String] = []
         let keys: [URLResourceKey] = [.isDirectoryKey, .contentModificationDateKey]
         if let e = FileManager.default.enumerator(at: root, includingPropertiesForKeys: keys,
-                                                  options: [.skipsHiddenFiles, .skipsPackageDescendants]) {
+                                                  options: skipPackages ? [.skipsHiddenFiles, .skipsPackageDescendants] : [.skipsHiddenFiles],
+                                                  errorHandler: { url, _ in
+                                                      if unreadable.count < 50 { unreadable.append(url.path) }
+                                                      return true // on continue avec le reste
+                                                  }) {
             for case let url as URL in e {
                 let values = try? url.resourceValues(forKeys: Set(keys))
                 if values?.isDirectory == true {
@@ -35,7 +44,7 @@ public enum Indexer {
             }
         }
         return SearchIndex(root: root.path, signature: "\(dirCount)-\(Int(maxMTime))-\(count)",
-                           fileCount: count, byName: byName)
+                           fileCount: count, byName: byName, unreadable: unreadable)
     }
 }
 

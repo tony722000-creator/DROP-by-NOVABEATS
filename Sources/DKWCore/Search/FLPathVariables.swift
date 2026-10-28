@@ -20,6 +20,16 @@ public enum FLPathVariables {
         return [path]
     }
 
+    /// Dossiers de sons fournis avec FL Studio (ex. /Applications/FL Studio 2025.app/Contents/Resources/FL/Data/Patches/Packs).
+    public static func factoryPacksFolders() -> [String] {
+        var seen = Set<String>()
+        return factoryRoots().map { $0 + "/Data/Patches/Packs" }.filter { path in
+            var isDir: ObjCBool = false
+            return FileManager.default.fileExists(atPath: path, isDirectory: &isDir) && isDir.boolValue
+                && seen.insert(path).inserted
+        }
+    }
+
     static func factoryRoots() -> [String] {
         var roots: [String] = []
         let fm = FileManager.default

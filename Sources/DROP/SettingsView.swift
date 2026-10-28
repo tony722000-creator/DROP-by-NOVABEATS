@@ -20,6 +20,23 @@ struct SettingsView: View {
                     }
                     Button("Réindexer") { model.refreshIndexes() }.disabled(settings.libraryPath.isEmpty)
                 }
+                if let packs = FLPathVariables.factoryPacksFolders().first {
+                    HStack {
+                        Text("Sons de FL Studio détectés").foregroundStyle(.secondary)
+                        Spacer()
+                        Button("Utiliser comme bibliothèque") {
+                            settings.libraryPath = packs
+                            model.refreshIndexes()
+                        }
+                        .disabled(settings.libraryPath == packs)
+                        Button("Ajouter aux secours") {
+                            settings.fallbackPaths.append(packs)
+                            model.refreshIndexes()
+                        }
+                        .disabled(settings.fallbackPaths.contains(packs) || settings.libraryPath == packs)
+                    }
+                    .help(packs)
+                }
                 IndexStatusLabel()
             }
             Section("Dossiers de secours (ex. disque externe)") {

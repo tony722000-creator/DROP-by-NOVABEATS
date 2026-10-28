@@ -100,6 +100,7 @@ enum FolderPicker {
         panel.canChooseFiles = false
         panel.canCreateDirectories = true
         panel.allowsMultipleSelection = false
+        panel.treatsFilePackagesAsDirectories = true // pour entrer dans « FL Studio.app »
         panel.message = message
         panel.prompt = "Choisir"
         if let start, !start.isEmpty { panel.directoryURL = URL(fileURLWithPath: start) }

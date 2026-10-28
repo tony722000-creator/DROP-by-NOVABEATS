@@ -7,7 +7,7 @@ import UniformTypeIdentifiers
 enum IndexStatus: Equatable {
     case idle
     case indexing
-    case ready(Int)
+    case ready(files: Int, unreadable: [String])
 }
 
 @Observable
@@ -49,6 +49,7 @@ final class AppModel {
     private var resolver = SampleResolver()
     private var extraIndexes: [SearchIndex] = []
     private var indexTask: Task<Void, Never>?
+    private var extrasTask: Task<Void, Never>?
 
     init() {
         settings = DemoMode.isOn ? AppSettings(defaults: DemoMode.defaults) : AppSettings()
@@ -73,29 +74,48 @@ final class AppModel {
     // MARK: Index
 
     /// Charge le cache tout de suite, puis rescanne en arrière-plan.
+    /// La bibliothèque est indexée seule : l'analyse des .flp n'attend qu'elle.
+    /// Téléchargements et les dossiers de secours suivent à part, car macOS peut y faire attendre
+    /// une autorisation (ou un disque externe peut être lent) : ils ne bloquent jamais l'app.
     func refreshIndexes() {
         let library = settings.libraryPath
         let fallbacks = settings.fallbackPaths
         indexTask?.cancel()
-        indexStatus = library.isEmpty && fallbacks.isEmpty ? .idle : .indexing
+        extrasTask?.cancel()
+        indexStatus = library.isEmpty ? .idle : .indexing
+        if !library.isEmpty, let cached = IndexCache.load(root: library) {
+            resolver.library = cached
+        } else {
+            resolver.library = nil
+        }
         indexTask = Task {
-            if !library.isEmpty, let cached = IndexCache.load(root: library) {
-                resolver.library = cached
-            }
-            let built = await Task.detached(priority: .userInitiated) { () -> SampleResolver in
-                var r = SampleResolver()
-                if !library.isEmpty {
-                    r.library = IndexCache.refresh(root: URL(fileURLWithPath: library)).index
-                }
-                let dl = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Downloads")
-                r.downloads = Indexer.scan(root: dl, maxDepth: 4)
-                r.fallbacks = fallbacks.map { IndexCache.refresh(root: URL(fileURLWithPath: $0)).index }
-                return r
+            guard !library.isEmpty else { return }
+            let index = await Task.detached(priority: .userInitiated) {
+                IndexCache.refresh(root: URL(fileURLWithPath: library)).index
             }.value
             guard !Task.isCancelled else { return }
-            resolver = built
-            resolver.fallbacks += extraIndexes
-            indexStatus = library.isEmpty ? .idle : .ready(built.library?.fileCount ?? 0)
+            resolver.library = index
+            indexStatus = .ready(files: index.fileCount, unreadable: index.unreadable ?? [])
+        }
+        extrasTask = Task {
+            let extras = await Task.detached(priority: .utility) { () -> (SearchIndex, [SearchIndex]) in
+                let dl = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Downloads")
+                let downloads = Indexer.scan(root: dl, maxDepth: 4, skipPackages: true)
+                let fb = fallbacks.map { IndexCache.refresh(root: URL(fileURLWithPath: $0)).index }
+                return (downloads, fb)
+            }.value
+            guard !Task.isCancelled else { return }
+            resolver.downloads = extras.0
+            resolver.fallbacks = extras.1 + extraIndexes
+            await reresolveMissing()
+        }
+    }
+
+    /// Relance la recherche des sons encore introuvables (ex. quand Téléchargements devient disponible).
+    private func reresolveMissing() async {
+        let r = resolver
+        for p in projects where p.missingCount > 0 {
+            p.items = await Task.detached { [items = p.items] in ProjectAnalyzer.reresolve(items, resolver: r) }.value
         }
     }
 

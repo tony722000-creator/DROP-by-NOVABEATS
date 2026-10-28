@@ -281,6 +281,14 @@ struct SetupView: View {
                 }
             }
             .buttonStyle(CreamButtonStyle(height: 38))
+            if let packs = FLPathVariables.factoryPacksFolders().first {
+                Button("UTILISER LES SONS DE FL STUDIO") {
+                    model.settings.libraryPath = packs
+                    model.refreshIndexes()
+                }
+                .buttonStyle(CreamButtonStyle(height: 34))
+                .help(packs)
+            }
             Button("Passer pour l'instant") { model.settings.skippedSetup = true }
                 .buttonStyle(.plain).font(.system(size: 12)).foregroundStyle(.white.opacity(0.6))
         }
@@ -303,8 +311,17 @@ struct IndexStatusLabel: View {
                 } else { EmptyView() }
             case .indexing:
                 HStack(spacing: 6) { ProgressView().controlSize(.small); Text("Indexation de la bibliothèque…") }
-            case .ready(let n):
-                Label("Bibliothèque prête : \(n.formatted()) sons indexés", systemImage: "checkmark.circle")
+            case .ready(let n, let unreadable):
+                VStack(alignment: .leading, spacing: 4) {
+                    Label("Bibliothèque prête : \(n.formatted()) sons indexés", systemImage: "checkmark.circle")
+                    if !unreadable.isEmpty {
+                        Label("\(unreadable.count) dossier\(unreadable.count > 1 ? "s" : "") illisible\(unreadable.count > 1 ? "s" : "") (droits d'accès) : "
+                              + unreadable.map { ($0 as NSString).lastPathComponent }.joined(separator: ", "),
+                              systemImage: "lock.trianglebadge.exclamationmark")
+                            .foregroundStyle(.orange)
+                            .help("macOS interdit à ton compte d'ouvrir ces dossiers. Dans le Finder : Lire les informations › Partage et permissions › donne-toi « Lecture ».\n" + unreadable.joined(separator: "\n"))
+                    }
+                }
             }
         }
         .font(.caption).foregroundStyle(.secondary)
