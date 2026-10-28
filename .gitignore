@@ -2,3 +2,5 @@
 build/
 .DS_Store
 .vscode/
+# images et kit de test du tuning : publiés à part dans « image test/ »
+Branding/tuning-kits-test/

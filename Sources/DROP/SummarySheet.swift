@@ -4,6 +4,7 @@ import DKWCore
 /// Récapitulatif après extraction (Échap ou « FERMER » pour fermer).
 struct SummarySheet: View {
     @Environment(AppModel.self) private var model
+    @Environment(TuningModel.self) private var tuning
     @Environment(\.dismiss) private var dismiss
 
     private var total: Int { model.reports.reduce(0) { $0 + $1.copied.count } }
@@ -41,6 +42,17 @@ struct SummarySheet: View {
                     .keyboardShortcut(.defaultAction)
                 }
                 .buttonStyle(CreamButtonStyle(height: 34))
+                if total > 0, let out = model.reports.first?.destination ?? model.outputURL {
+                    Button {
+                        tuning.load(kit: out)
+                        model.tab = .tuning
+                        dismiss()
+                    } label: {
+                        Label("TUNER CE KIT", systemImage: "photo.on.rectangle.angled")
+                    }
+                    .buttonStyle(CreamButtonStyle(height: 30))
+                    .help("Ouvre l'onglet TUNING KITS avec ce dossier, bannières DROP proposées")
+                }
             }
             .padding(30)
         }

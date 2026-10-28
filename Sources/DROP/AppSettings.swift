@@ -11,6 +11,8 @@ final class AppSettings {
     var lastArtist: String { didSet { d.set(lastArtist, forKey: "lastArtist") } }
     var fallbackPaths: [String] { didSet { d.set(fallbackPaths, forKey: "fallbackPaths") } }
     var skippedSetup: Bool { didSet { d.set(skippedSetup, forKey: "skippedSetup") } }
+    /// Dossier des bannières proposées dans TUNING KITS (clap.png, kick.png…).
+    var bannersPath: String { didSet { d.set(bannersPath, forKey: "bannersPath") } }
 
     init(defaults: UserDefaults = .standard) {
         d = defaults
@@ -19,6 +21,7 @@ final class AppSettings {
         lastArtist = d.string(forKey: "lastArtist") ?? ""
         fallbackPaths = d.stringArray(forKey: "fallbackPaths") ?? []
         skippedSetup = d.bool(forKey: "skippedSetup")
+        bannersPath = d.string(forKey: "bannersPath") ?? ""
     }
 
     var needsSetup: Bool { libraryPath.isEmpty && !skippedSetup }

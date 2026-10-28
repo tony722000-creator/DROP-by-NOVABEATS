@@ -1,5 +1,7 @@
 import Foundation
 import DKWCore
+import CoreGraphics
+import ImageIO
 
 /// Tests automatiques (pas besoin d'Xcode) : `dkw-flp --self-test`.
 enum SelfTest {
@@ -238,6 +240,89 @@ enum SelfTest {
         check(!has(try? Data(contentsOf: dest), mark), "la copie n'a plus aucune info du kit")
         check(destXattrs.isEmpty, "la copie n'a plus d'infos macOS attachées (icône, étiquettes, lien de téléchargement…)")
         check((try? Data(contentsOf: srcWav)) == wav, "l'original n'est pas modifié")
+
+        print("Tuning kits (.nfo du Browser FL)")
+        check(FLBrowserFormat.colorValue(rgb: 0x8B5CF6) == "$F65C8B", "couleur #8B5CF6 → $F65C8B")
+        func testPNG(_ w: Int, _ h: Int) -> Data {
+            let ctx = CGContext(data: nil, width: w, height: h, bitsPerComponent: 8, bytesPerRow: 0,
+                                space: CGColorSpace(name: CGColorSpace.sRGB)!, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
+            ctx.setFillColor(CGColor(red: 0.5, green: 0.3, blue: 0.9, alpha: 1)); ctx.fill(CGRect(x: 0, y: 0, width: w, height: h))
+            let out = NSMutableData()
+            let dest = CGImageDestinationCreateWithData(out, "public.png" as CFString, 1, nil)!
+            CGImageDestinationAddImage(dest, ctx.makeImage()!, nil); CGImageDestinationFinalize(dest)
+            return out as Data
+        }
+        let banner = TuningImage.prepare(data: testPNG(1024, 172), as: .banner)!
+        let tall = TuningImage.prepare(data: testPNG(1000, 400), as: .banner)!
+        let cover = TuningImage.prepare(data: testPNG(800, 600), as: .cover)!
+        check(TuningImage.pixelSize(banner).map { $0.width == 300 && $0.height == 50 } == true, "bannière 1024×172 → 300×50")
+        check(TuningImage.pixelSize(tall).map { $0.width == 300 && $0.height == 50 } == true, "bannière trop haute → recadrée 300×50")
+        check(TuningImage.pixelSize(cover).map { $0.width == 256 && $0.height == 256 } == true, "cover 800×600 → recadrée 256×256")
+
+        let kitParent = tmp.appendingPathComponent("Kits")
+        let kit = kitParent.appendingPathComponent("Kit Test")
+        for d in ["Claps", "Kicks", "Drums/Snares", ".images"] {
+            try? fm.createDirectory(at: kit.appendingPathComponent(d), withIntermediateDirectories: true)
+        }
+        let sample = Data("son".utf8)
+        try? sample.write(to: kit.appendingPathComponent("Claps/Clap 1.wav"))
+        let foreignNFO = "Tip=Kicks\r\nComment=kit du commerce\r\nBitmap=.images/theirs.png\r\n"
+        try? Data(foreignNFO.utf8).write(to: kit.appendingPathComponent("Kicks.nfo"))
+        try? Data("theirs".utf8).write(to: kit.appendingPathComponent(".images/theirs.png"))
+        try? Data("autre auteur".utf8).write(to: kit.appendingPathComponent(".images/kicks.png"))
+
+        let items = KitTuner.scan(kitRoot: kit, includeFiles: true)
+        check(items.map(\.relativePath) == ["Claps", "Claps/Clap 1.wav", "Drums", "Drums/Snares", "Kicks"], "liste : dossiers à tous les niveaux + fichiers")
+        check(items.first { $0.name == "Claps" }?.detectedType == .clap && items.first { $0.name == "Snares" }?.depth == 1, "Claps → CLAP, Snares au 2e niveau")
+        let fileNFO = FLBrowserFormat.nfoURL(for: .item(relativePath: "Claps/Clap 1.wav", isDirectory: false), kitRoot: kit)
+        check(fileNFO.lastPathComponent == "Clap 1.nfo", "fichier « Clap 1.wav » → « Clap 1.nfo »")
+
+        let changes: [TuningTarget: TuningChange] = [
+            .item(relativePath: "Claps", isDirectory: true): .set(png: banner),
+            .item(relativePath: "Kicks", isDirectory: true): .set(png: banner),
+            .item(relativePath: "Drums/Snares", isDirectory: true): .set(png: banner),
+            .cover: .set(png: cover),
+        ]
+        check(KitTuner.foreignNFOs(touchedBy: changes, kitRoot: kit).map(\.lastPathComponent) == ["Kicks.nfo"], "un .nfo existant est signalé avant d'y toucher")
+        let r1 = KitTuner.apply(changes, kitRoot: kit)
+        func text(_ rel: String) -> String? { try? String(contentsOf: kitParent.appendingPathComponent(rel), encoding: .utf8) }
+        check(r1.errors.isEmpty && r1.created == 3 && r1.updated == 1, "3 .nfo créés, 1 mis à jour, aucune erreur")
+        check(text("Kit Test/Claps.nfo") == "Tip=Claps\r\nBitmap=.images/claps.png\r\nColor=$F65C8B\r\n", "Claps.nfo exactement au format du kit d'essai (CRLF)")
+        check(text("Kit Test/Drums/Snares.nfo") == "Tip=Snares\r\nBitmap=../.images/drums-snares.png\r\nColor=$F65C8B\r\n", "sous-dossier imbriqué : chemin ../.images/")
+        check(text("Kit Test.nfo") == "Tip=Kit Test\r\nBitmap=Kit Test/.images/cover.png\r\nColor=$F65C8B\r\n", "cover : « Kit Test.nfo » à côté du kit")
+        check(text("Kit Test/Kicks.nfo") == "Tip=Kicks\r\nComment=kit du commerce\r\nBitmap=.images/kicks-drop.png\r\nColor=$F65C8B\r\n",
+              ".nfo existant : autres lignes gardées, image de l'autre auteur jamais écrasée")
+        check((try? Data(contentsOf: kit.appendingPathComponent(".images/kicks.png"))) == Data("autre auteur".utf8), "image d'origine intacte")
+        check((try? Data(contentsOf: kit.appendingPathComponent("Claps/Clap 1.wav"))) == sample, "les samples ne sont pas touchés")
+        let imgCount = { ((try? fm.contentsOfDirectory(atPath: kit.appendingPathComponent(".images").path)) ?? []).count }
+        let before = imgCount()
+        _ = KitTuner.apply(changes, kitRoot: kit)
+        check(imgCount() == before, "réappliquer ne multiplie pas les images")
+
+        let r2 = KitTuner.removeAll(kitRoot: kit)
+        check(r2.errors.isEmpty, "retirer le tuning : aucune erreur")
+        check(text("Kit Test/Kicks.nfo") == foreignNFO, "retirer : le .nfo d'origine revient à l'identique")
+        check(text("Kit Test/Claps.nfo") == nil && text("Kit Test.nfo") == nil && text("Kit Test/Drums/Snares.nfo") == nil, "retirer : les .nfo de DROP sont supprimés")
+        check(((try? fm.contentsOfDirectory(atPath: kit.appendingPathComponent(".images").path)) ?? []).sorted() == ["kicks.png", "theirs.png"],
+              "retirer : seules les images de DROP sont supprimées")
+        check((try? Data(contentsOf: kit.appendingPathComponent("Claps/Clap 1.wav"))) == sample && !KitTuner.hasDropTuning(kitRoot: kit), "retirer : samples intacts, plus de suivi DROP")
+
+        // retirer l'image d'un .nfo du commerce, puis tout remettre
+        _ = KitTuner.apply([.item(relativePath: "Kicks", isDirectory: true): .clear], kitRoot: kit)
+        check(text("Kit Test/Kicks.nfo") == "Tip=Kicks\r\nComment=kit du commerce\r\n", "retirer une image d'origine : seule la ligne Bitmap part")
+        _ = KitTuner.removeAll(kitRoot: kit)
+        check(text("Kit Test/Kicks.nfo") == foreignNFO, "… et « Retirer le tuning » la remet")
+
+        // non-régression : dossier dont macOS raccourcit le chemin (/private/tmp → /tmp)
+        let privTmp = URL(fileURLWithPath: "/private/tmp/dkw-tuning-\(UUID().uuidString)/Kit P")
+        try? fm.createDirectory(at: privTmp.appendingPathComponent("Claps"), withIntermediateDirectories: true)
+        defer { try? fm.removeItem(at: privTmp.deletingLastPathComponent()) }
+        _ = KitTuner.apply([.item(relativePath: "Claps", isDirectory: true): .set(png: banner), .cover: .set(png: cover)], kitRoot: privTmp)
+        let created = fm.fileExists(atPath: privTmp.appendingPathComponent("Claps.nfo").path)
+        _ = KitTuner.removeAll(kitRoot: privTmp)
+        let leftovers = ((try? fm.contentsOfDirectory(atPath: privTmp.deletingLastPathComponent().path)) ?? []).sorted()
+            + ((try? fm.contentsOfDirectory(atPath: privTmp.path)) ?? []).sorted()
+        check(created && leftovers == ["Kit P", "Claps"], "dossier /private/tmp : retirer le tuning supprime bien les .nfo")
 
         print(failures == 0 ? "\nTous les tests passent ✅" : "\n\(failures) test(s) en échec ❌")
         return failures == 0

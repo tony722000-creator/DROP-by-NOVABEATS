@@ -4,16 +4,20 @@ import DKWCore
 @main
 struct DROPApp: App {
     @State private var model = AppModel()
+    @State private var tuning = TuningModel()
     @Environment(\.openWindow) private var openWindow
 
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .environment(model)
+                .environment(tuning)
                 .frame(minWidth: 1000, minHeight: 600)
                 .onOpenURL { model.add(urls: [$0]) }
                 .onAppear {
                     if DemoMode.isOn, DemoMode.env["DROP_SHOW"] == "about" { openWindow(id: "about") }
+                    tuning.settings = model.settings
+                    DemoMode.loadTuning(model: model, tuning: tuning)
                     DemoMode.scheduleSnapshot()
                 }
         }

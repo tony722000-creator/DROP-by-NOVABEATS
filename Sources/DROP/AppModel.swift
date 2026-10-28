@@ -4,6 +4,11 @@ import AppKit
 import DKWCore
 import UniformTypeIdentifiers
 
+enum MainTab: CaseIterable {
+    case extraction, tuning
+    var title: String { self == .extraction ? "EXTRACTION" : "TUNING KITS" }
+}
+
 enum IndexStatus: Equatable {
     case idle
     case indexing
@@ -45,6 +50,7 @@ final class AppModel {
     /// Incrémenté à chaque nouveau .flp : déclenche l'animation d'absorption du trou noir.
     var absorbToken = 0
     var selectedProjectID: UUID?
+    var tab: MainTab = .extraction
 
     private var resolver = SampleResolver()
     private var extraIndexes: [SearchIndex] = []

@@ -36,12 +36,15 @@ struct BlackHoleView: View {
                 AbsorbEffects(start: start)
             }
         }
-        .onChange(of: absorbToken) { _, _ in
+        .onChange(of: absorbToken) { _, new in
             // sans vidéo d'absorption, les effets démarrent tout de suite
-            if videoFailed || PedalAssets.absorbVideo == nil { startEffects(at: .now) }
+            if videoFailed || PedalAssets.absorbVideo == nil { BlackHoleVideo.playedToken = new; startEffects(at: .now) }
         }
         .onAppear {
-            if videoFailed || PedalAssets.absorbVideo == nil, absorbToken > 0 { startEffects(at: .now) }
+            if videoFailed || PedalAssets.absorbVideo == nil, absorbToken > BlackHoleVideo.playedToken {
+                BlackHoleVideo.playedToken = absorbToken
+                startEffects(at: .now)
+            }
         }
     }
 
@@ -56,10 +59,13 @@ struct BlackHoleView: View {
 
 // MARK: Vidéo
 
-private struct BlackHoleVideo: NSViewRepresentable {
+struct BlackHoleVideo: NSViewRepresentable {
     let absorbToken: Int
     let onAbsorbStart: (Date) -> Void
     let onFailure: () -> Void
+
+    /// Dernière absorption jouée (la vue est recréée en changeant d'onglet : on ne la rejoue pas).
+    static var playedToken = 0
 
     func makeNSView(context: Context) -> BlackHoleNSView {
         let v = BlackHoleNSView()
@@ -67,7 +73,10 @@ private struct BlackHoleVideo: NSViewRepresentable {
         v.onFailure = onFailure
         context.coordinator.lastToken = absorbToken
         // premier .flp : la vue apparaît justement parce qu'on vient d'en déposer un
-        if absorbToken > 0 { DispatchQueue.main.async { v.absorb() } }
+        if absorbToken > Self.playedToken {
+            Self.playedToken = absorbToken
+            DispatchQueue.main.async { v.absorb() }
+        }
         return v
     }
 
@@ -76,6 +85,7 @@ private struct BlackHoleVideo: NSViewRepresentable {
         v.onFailure = onFailure
         if absorbToken != context.coordinator.lastToken {
             context.coordinator.lastToken = absorbToken
+            Self.playedToken = absorbToken
             v.absorb()
         }
     }

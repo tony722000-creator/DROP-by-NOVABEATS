@@ -4,6 +4,7 @@ import DKWCore
 /// Fenêtre principale : le boîtier de la pédale.
 struct ContentView: View {
     @Environment(AppModel.self) private var model
+    @Environment(TuningModel.self) private var tuning
     @State private var dropTargeted = false
 
     var body: some View {
@@ -21,10 +22,17 @@ struct ContentView: View {
         .tint(Studio.accent)
         .animation(.smooth(duration: 0.35), value: model.settings.needsSetup)
         .dropDestination(for: URL.self) { urls, _ in
-            model.add(urls: urls); return true
+            if model.tab == .tuning {
+                // onglet TUNING KITS : un dossier déposé devient le kit à habiller
+                guard let folder = urls.first(where: { $0.hasDirectoryPath }) else { return false }
+                tuning.load(kit: folder)
+            } else {
+                model.add(urls: urls)
+            }
+            return true
         } isTargeted: { dropTargeted = $0 }
         .sheet(isPresented: $model.showSummary) {
-            SummarySheet().environment(model)
+            SummarySheet().environment(model).environment(tuning)
         }
     }
 }
@@ -44,12 +52,17 @@ private struct WindowScrews: View {
 }
 
 private struct PedalLayout: View {
+    @Environment(AppModel.self) private var model
     let dropTargeted: Bool
 
     var body: some View {
+        @Bindable var model = model
         VStack(spacing: 0) {
             HStack(alignment: .top) {
                 LogoView(width: 200, glow: true)
+                Spacer()
+                TabSelector(tab: $model.tab)
+                    .padding(.top, 14)
                 Spacer()
                 SettingsLink { Image(systemName: "gearshape.fill") }
                     .buttonStyle(CreamIconButtonStyle())
@@ -58,16 +71,21 @@ private struct PedalLayout: View {
             }
             .padding(.top, 34)
 
-            HStack(alignment: .top, spacing: 26) {
-                SourcePanel(dropTargeted: dropTargeted)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                SamplesPanel()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
-            .padding(.top, 18)
+            if model.tab == .extraction {
+                // écran d'extraction, inchangé
+                HStack(alignment: .top, spacing: 26) {
+                    SourcePanel(dropTargeted: dropTargeted)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    SamplesPanel()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+                .padding(.top, 18)
 
-            ControlRow()
-                .padding(.top, 22)
+                ControlRow()
+                    .padding(.top, 22)
+            } else {
+                TuningLayout(dropTargeted: dropTargeted)
+            }
         }
         .padding(.horizontal, 48)
         .padding(.bottom, 30)

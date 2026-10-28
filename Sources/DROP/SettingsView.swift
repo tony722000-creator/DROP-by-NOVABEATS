@@ -58,6 +58,22 @@ struct SettingsView: View {
                 Text("Téléchargements (~/Downloads) est toujours inclus automatiquement.")
                     .font(.caption).foregroundStyle(.secondary)
             }
+            Section("Bannières (TUNING KITS)") {
+                HStack {
+                    Text(settings.bannersPath.isEmpty ? "Aucun dossier" : (settings.bannersPath as NSString).abbreviatingWithTildeInPath)
+                        .lineLimit(1).truncationMode(.head)
+                    Spacer()
+                    Button("Choisir…") {
+                        if let url = FolderPicker.pick(message: "Dossier de tes bannières (clap.png, kick.png, 808.png…)", start: settings.bannersPath) {
+                            settings.bannersPath = url.path
+                        }
+                    }
+                    if !settings.bannersPath.isEmpty {
+                        Button("Retirer") { settings.bannersPath = "" }
+                    }
+                }
+                Text(bannersHelp).font(.caption).foregroundStyle(.secondary)
+            }
             Section("Sortie") {
                 HStack {
                     Text(settings.outputPath.isEmpty ? "Aucun" : (settings.outputPath as NSString).abbreviatingWithTildeInPath)
@@ -69,7 +85,17 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(width: 560, height: 480)
+        .frame(width: 560, height: 640)
         .tint(Studio.accent)
+    }
+
+    private var bannersHelp: String {
+        let names = SoundType.allCases.map { $0.folderName + ".png" }.joined(separator: ", ")
+        guard !model.settings.bannersPath.isEmpty else {
+            return "Range tes bannières dans un dossier avec ces noms : \(names). DROP les proposera pour les dossiers reconnus (Claps → clap.png)."
+        }
+        let found = DropBanners.available(in: model.settings.bannersPath)
+        return found.isEmpty ? "Aucune bannière trouvée. Noms attendus : \(names)."
+                             : "Bannières trouvées : " + found.map(\.badgeLabel).joined(separator: ", ") + "."
     }
 }

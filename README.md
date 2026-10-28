@@ -47,11 +47,33 @@ Compatible macOS 14 et plus, Apple Silicon et Intel.
 Recherche des samples, dans l'ordre : chemin exact du `.flp` → bibliothèque → `~/Downloads` → dossiers de secours.
 Sons introuvables : bouton « CHERCHER… » pour fouiller un autre dossier ou un disque externe.
 
+## TUNING KITS : habiller un kit dans le Browser de FL Studio
+
+Onglet **TUNING KITS** (en haut de la fenêtre) : une image **cover** pour le kit et une **bannière** sous chaque dossier
+(Claps, Kicks, 808s…) ou chaque son, affichées dans le Browser de FL Studio.
+
+1. Glisse le dossier principal du kit dans la fenêtre (ou clique pour le choisir).
+2. Glisse la cover dans le grand carré, et une image sur chaque dossier (PNG/JPG, redimensionnée automatiquement :
+   300 px de large pour les bannières, 256×256 pour la cover).
+3. Appuie sur **START**.
+
+Bannières automatiques : dans les réglages (`⌘,`), choisis un dossier où tu ranges tes bannières nommées
+`808.png`, `kick.png`, `snare.png`, `clap.png`, `hihat.png`, `openhat.png`, `perc.png`, `rim.png`, `crash.png`,
+`fx.png`, `vox.png`, `loop.png`, `autres.png`. DROP les propose pour les dossiers reconnus (Claps → `clap.png`).
+Des images d'exemple sont dans [`image test/`](image%20test/).
+
+DROP **ne touche jamais aux samples** : il ajoute seulement des fichiers `.nfo` et un dossier caché `.images`.
+Un `.nfo` déjà présent n'est modifié qu'après confirmation (seules les lignes Tip, Bitmap et Color changent).
+**RETIRER LE TUNING** supprime uniquement ce que DROP a ajouté et remet les `.nfo` d'origine.
+Le format des `.nfo` se règle dans `Sources/DKWCore/Tuning/FLBrowserFormat.swift`.
+
 ## Outil en ligne de commande
 
 ```
 dkw-flp projet.flp                       # liste les samples du .flp
 dkw-flp projet.flp --library ~/Samples   # + vérifie s'ils sont retrouvés
+dkw-flp --tune "Mon Kit" --banners "image test" --cover "image test/cover.png"   # habille un kit
+dkw-flp --tune "Mon Kit" --remove        # retire ce que DROP a ajouté
 dkw-flp --self-test                      # tests automatiques
 ```
 

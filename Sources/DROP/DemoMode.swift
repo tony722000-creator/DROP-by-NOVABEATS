@@ -13,13 +13,32 @@ enum DemoMode {
     static var isSnapshot: Bool { snapshotPath != nil }
     static let defaults = UserDefaults(suiteName: "com.tonycarlos.drop.demo") ?? .standard
 
+    /// DROP_DEMO=tuning : kit d'exemple temporaire (dossiers vides) chargé dans l'onglet TUNING KITS.
+    @MainActor
+    static func loadTuning(model: AppModel, tuning: TuningModel) {
+        guard env["DROP_DEMO"] == "tuning" else { return }
+        let kit = FileManager.default.temporaryDirectory.appendingPathComponent("DROP demo/NOVABEATS Drum Kit")
+        try? FileManager.default.removeItem(at: kit.deletingLastPathComponent())
+        for d in ["808s", "Claps", "Hats", "Kicks", "Snares", "FX", "Percs"] {
+            try? FileManager.default.createDirectory(at: kit.appendingPathComponent(d), withIntermediateDirectories: true)
+        }
+        // bannières de test (jamais intégrées à l'app) : Branding/tuning-kits-test/sources-hd
+        model.settings.bannersPath = FileManager.default.currentDirectoryPath + "/Branding/tuning-kits-test/sources-hd"
+        if let dir = env["DROP_TEST_BANNERS"] { model.settings.bannersPath = dir }
+        model.tab = .tuning
+        tuning.load(kit: kit)
+        if let cover = env["DROP_TEST_COVER"] {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) { tuning.setImage(URL(fileURLWithPath: cover), for: .cover) }
+        }
+    }
+
     @MainActor
     static func load(into model: AppModel) {
         model.settings.skippedSetup = env["DROP_DEMO"] != "setup"
         if env["DROP_DEMO"] == "setup" { model.settings.libraryPath = "" }
         model.settings.outputPath = NSHomeDirectory() + "/Music/DROP"
         model.artist = "NOVABEATS"
-        guard env["DROP_DEMO"] != "empty" else { return }
+        guard env["DROP_DEMO"] != "empty", env["DROP_DEMO"] != "tuning" else { return }
 
         func project(_ name: String, title: String, _ files: [(String, Bool)]) -> Project {
             let p = Project(flpURL: URL(fileURLWithPath: "/tmp/\(name).flp"))
