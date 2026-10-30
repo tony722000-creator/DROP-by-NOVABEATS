@@ -4,3 +4,6 @@ build/
 .vscode/
 # images et kit de test du tuning : publiés à part dans « image test/ »
 Branding/tuning-kits-test/
+# documents de travail : gardés sur ce Mac, pas dans le dépôt public
+Branding/maquette-ui.jpg
+Branding/DROP-images-a-fournir.pdf

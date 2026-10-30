@@ -72,7 +72,7 @@ Le format des `.nfo` se règle dans `Sources/DKWCore/Tuning/FLBrowserFormat.swif
 ```
 dkw-flp projet.flp                       # liste les samples du .flp
 dkw-flp projet.flp --library ~/Samples   # + vérifie s'ils sont retrouvés
-dkw-flp --tune "Mon Kit" --banners "image test" --cover "image test/cover.png"   # habille un kit
+dkw-flp --tune "Mon Kit" --banners "image test" --cover "ma-cover.png"   # habille un kit
 dkw-flp --tune "Mon Kit" --remove        # retire ce que DROP a ajouté
 dkw-flp --self-test                      # tests automatiques
 ```
