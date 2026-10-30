@@ -57,7 +57,7 @@ enum Studio {
     }
 }
 
-/// Logo « DROP by NOVABEATS » (copié dans DROP.app/Contents/Resources par build.sh).
+/// Logo « DROP by TONY CARLOS » (copié dans DROP.app/Contents/Resources par build.sh).
 enum Brand {
     static let logo: NSImage? = {
         if let url = Bundle.main.url(forResource: "drop-logo", withExtension: "png") { return NSImage(contentsOf: url) }
@@ -92,7 +92,7 @@ struct LogoView: View {
                     .foregroundStyle(Studio.gradient)
             }
         }
-        .accessibilityLabel("DROP by NOVABEATS")
+        .accessibilityLabel("DROP by TONY CARLOS")
     }
 }
 

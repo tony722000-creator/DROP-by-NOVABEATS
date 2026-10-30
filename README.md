@@ -1,8 +1,8 @@
-# DROP by NOVABEATS
+# DROP by TONY CARLOS
 
 <p align="center"><img src="Branding/drop-icon-1024.png" width="160" alt="Icône DROP"></p>
 
-**DROP** est une app macOS gratuite pour les beatmakers sous FL Studio : tu glisses un projet `.flp`,
+**DROP by TONY CARLOS** est une app macOS gratuite pour les beatmakers sous FL Studio : tu glisses un projet `.flp`,
 elle retrouve tous les samples audio utilisés (`.wav`, `.mp3`, `.aif`, `.aiff`, `.flac`, `.ogg`),
 les classe par type (808, kick, snare, clap, hihat…) et les **copie** dans un dossier propre, renommés.
 Idéal pour préparer un drum kit ou envoyer les sons d'une prod.
@@ -93,4 +93,4 @@ La détection des types se règle dans `Sources/DKWCore/Classification/Classific
 
 ---
 
-DROP by NOVABEATS · logiciel pour beatmakers FL Studio sur Mac · extraction de samples · drum kit
+DROP by TONY CARLOS · logiciel pour beatmakers FL Studio sur Mac · extraction de samples · drum kit

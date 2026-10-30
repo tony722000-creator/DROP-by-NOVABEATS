@@ -17,7 +17,7 @@ enum DemoMode {
     @MainActor
     static func loadTuning(model: AppModel, tuning: TuningModel) {
         guard env["DROP_DEMO"] == "tuning" else { return }
-        let kit = FileManager.default.temporaryDirectory.appendingPathComponent("DROP demo/NOVABEATS Drum Kit")
+        let kit = FileManager.default.temporaryDirectory.appendingPathComponent("DROP demo/TONY CARLOS Drum Kit")
         try? FileManager.default.removeItem(at: kit.deletingLastPathComponent())
         for d in ["808s", "Claps", "Hats", "Kicks", "Snares", "FX", "Percs"] {
             try? FileManager.default.createDirectory(at: kit.appendingPathComponent(d), withIntermediateDirectories: true)
@@ -37,7 +37,7 @@ enum DemoMode {
         model.settings.skippedSetup = env["DROP_DEMO"] != "setup"
         if env["DROP_DEMO"] == "setup" { model.settings.libraryPath = "" }
         model.settings.outputPath = NSHomeDirectory() + "/Music/DROP"
-        model.artist = "NOVABEATS"
+        model.artist = "TONY CARLOS"
         guard env["DROP_DEMO"] != "empty", env["DROP_DEMO"] != "tuning" else { return }
 
         func project(_ name: String, title: String, _ files: [(String, Bool)]) -> Project {

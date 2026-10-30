@@ -13,7 +13,7 @@ struct AboutView: View {
                     .multilineTextAlignment(.center)
                 Label("100 % local : aucune connexion internet nécessaire.", systemImage: "lock.shield")
                     .font(.caption).foregroundStyle(Studio.lavender)
-                Text("© NOVABEATS").silkscreen(size: 9, opacity: 0.5)
+                Text("© TONY CARLOS").silkscreen(size: 9, opacity: 0.5)
             }
             .padding(40)
         }
